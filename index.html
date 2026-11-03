@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>无人机航测航线规划器｜第六组【顶配增强版】</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+*{box-sizing:border-box;font-family:"Microsoft YaHei",sans-serif}
+body{margin:0;padding:0;background:#12141a;color:#e5e7eb}
+.tab-header{
+    background:linear-gradient(135deg,#1a1d27 0%,#252936 100%);
+    padding:16px 24px;
+    border-bottom:1px solid #2c303d;
+}
+.tab-header h1{
+    margin:0 0 12px 0;
+    font-size:24px;
+    color:#ffffff;
+    text-align:center;
+}
+.tab-header .subtitle{
+    color:#9ca3af;
+    font-size:13px;
+    margin-bottom:16px;
+    text-align:center;
+}
+.tab-buttons{
+    display:flex;
+    gap:4px;
+    justify-content:center;
+}
+.tab-btn{
+    border:none;
+    padding:8px 14px;
+    background:transparent;
+    color:#9ca3af;
+    font-size:14px;
+    cursor:pointer;
+    border-radius:4px 4px 0 0;
+    transition:0.2s;
+}
+.tab-btn.active{
+    background:#2563eb;
+    color:#fff;
+    border-bottom:2px solid #60a5fa;
+}
+.tab-btn:hover{
+    color:#fff;
+}
+.status-bar{
+    max-width:1400px;
+    margin:12px auto 0;
+    padding:10px 16px;
+    background:#1a1d27;
+    border:1px solid #2c303d;
+    border-radius:8px;
+    display:flex;
+    gap:18px;
+    font-size:13px;
+    color:#9ca3af;
+    flex-wrap: wrap;
+    justify-content:center;
+}
+.status-item{
+    display:flex;
+    align-items:center;
+    gap:6px;
+}
+.dot{
+    width:8px;
+    height:8px;
+    border-radius:50%;
+    display:inline-block;
+}
+.dot-green{
+    background:#22c55e;
+    box-shadow:0 0 8px #22c55e;
+}
+.workstation{
+    max-width:1400px;
+    margin:0 auto;
+    padding:24px;
+}
+.page{
+    display:none;
+    opacity:0;
+    transition: opacity 0.35s ease;
+}
+.page.active{
+    display:block;
+    opacity:1;
+}
+.intro-main{
+    background:#1a1d27;
+    padding:28px 32px;
+    border-radius:10px;
+    border:1px solid #2c303d;
+    line-height:1.75;
+    max-width:1200px;
+    margin:0 auto;
+}
+.intro-main h2{
+    margin-top:24px;
+    margin-bottom:10px;
+    font-size:20px;
+}
+.intro-main h2:first-child{
+    margin-top:0;
+}
+.flow-steps{
+    display:flex;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:10px;
+    margin:16px 0;
+    justify-content:center;
+}
+.step{
+    background:#202430;
+    border:1px solid #2c303d;
+    border-radius:8px;
+    padding:10px 14px;
+    font-size:14px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+}
+.step span{
+    background:#3b82f6;
+    color:#fff;
+    width:24px;
+    height:24px;
+    border-radius:50%;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    font-size:13px;
+}
+.arrow{
+    color:#4b5563;
+}
+.relation-box{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(180px,1fr));
+    gap:12px;
+    margin-top:14px;
+}
+.relation-item{
+    background:#202430;
+    border:1px solid #2c303d;
+    border-radius:10px;
+    padding:14px;
+    text-align:center;
+    font-size:14px;
+}
+.relation-item span{
+    color:#60a5fa;
+    font-size:13px;
+}
+.formula-block{
+    background:#0f172a;
+    border:1px solid #1e293b;
+    border-radius:12px;
+    padding:18px;
+    margin:16px 0;
+}
+.formula-title{
+    font-size:13px;
+    color:#9ca3af;
+    margin:14px 0 6px;
+}
+.tip-notice{
+    background:#162942;
+    border-left:4px solid #3b82f6;
+    padding:12px 14px;
+    border-radius:0 6px 6px 0;
+    margin-top:16px;
+    color:#bfdbfe;
+    font-size:14px;
+}
+.warn-notice{
+    background:#331c1c;
+    border-left:4px solid #ef4444;
+    padding:12px 14px;
+    border-radius:0 6px 6px 0;
+    margin-top:8px;
+    color:#fca5a5;
+    font-size:14px;
+}
+#plan-container{
+    display:flex;
+    height:calc(100vh - 240px);
+    gap:16px;
+}
+#map{
+    flex:1;
+    border-radius:10px;
+    border:1px solid #2c303d;
+    position:relative;
+    background:#d9d9d9;
+    z-index:1;
+}
+#map-hint{
+    position:absolute;
+    top:12px;
+    right:12px;
+    z-index:1000;
+    background:rgba(17, 24, 39, 0.92);
+    border:1px solid #374151;
+    padding:8px 12px;
+    border-radius:6px;
+    font-size:13px;
+    color:#e5e7eb;
+}
+#panel{
+    width:460px;
+    background:#1a1d27;
+    border-radius:12px;
+    border:1px solid #2c303d;
+    padding:20px;
+    overflow:auto;
+}
+#panel h3{
+    margin-top:0;
+    text-align:center;
+}
+.panel-card{
+    background:#202430;
+    border:1px solid #2c303d;
+    border-radius:10px;
+    padding:14px;
+    margin-bottom:14px;
+    transition: box-shadow 0.25s ease;
+}
+.panel-card-title{
+    font-size:14px;
+    color:#60a5fa;
+    margin-bottom:10px;
+    padding-bottom:8px;
+    border-bottom:1px solid #2c303d;
+    text-align:center;
+}
+.item{margin:12px 0;}
+label{font-size:14px;color:#d1d5db;display:block;margin-bottom:4px}
+input[type="number"]{
+    width:100%;
+    padding:7px 10px;
+    background:#202430;
+    border:1px solid #373c4e;
+    border-radius:6px;
+    color:#fff;
+    transition: 0.2s;
+}
+input[type="number"]:focus{
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246,0.4);
+}
+input[type=range]{
+    width:100%;
+    padding:0;
+    background:transparent;
+}
+select{
+    width:100%;
+    padding:7px 10px;
+    background:#202430;
+    border:1px solid #373c4e;
+    border-radius:6px;
+    color:#fff;
+}
+.slide-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+.slide-val{
+    min-width:45px;
+    text-align:right;
+    color:#93c5fd;
+}
+.result{
+    background:#111827;
+    border:1px solid #1f2937;
+    border-radius:8px;
+    padding:12px;
+    font-size:14px;
+    line-height:1.7;
+}
+.arrow-up{color:#4ade80;margin-left:4px;}
+.arrow-down{color:#f87171;margin-left:4px;}
+.action-bar{
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap:10px;
+    margin-bottom:14px;
+}
+.action-btn{
+    padding:12px 10px;
+    border:none;
+    border-radius:10px;
+    font-size:14px;
+    font-weight:bold;
+    cursor:pointer;
+    color:#fff;
+    transition:0.2s;
+    box-shadow:0 4px 14px rgba(0,0,0,0.25);
+}
+.action-btn:hover{
+    transform:translateY(-2px);
+    box-shadow:0 6px 18px rgba(0,0,0,0.35);
+}
+.action-btn.draw{
+    background:linear-gradient(135deg,#22c55e 0%,#16a34a 100%);
+}
+.action-btn.draw:hover{
+    background:linear-gradient(135deg,#16a34a 0%,#15803d 100%);
+}
+.action-btn.plan{
+    background:linear-gradient(135deg,#3b82f6 0%,#2563eb 100%);
+}
+.action-btn.plan:hover{
+    background:linear-gradient(135deg,#2563eb 0%,#1d4ed8 100%);
+}
+.action-btn.clear{
+    background:linear-gradient(135deg,#f97316 0%,#ea580c 100%);
+}
+.action-btn.clear:hover{
+    background:linear-gradient(135deg,#ea580c 0%,#c2410c 100%);
+}
+.action-btn.sim{
+    background:linear-gradient(135deg,#a855f7 0%,#7e22ce 100%);
+}
+.action-btn.sim:hover{
+    background:linear-gradient(135deg,#7e22ce 0%,#581c87 100%);
+}
+.action-btn.active-mode{
+    animation: pulse 1s infinite;
+}
+@keyframes pulse{
+    0%,100%{opacity:1}
+    50%{opacity:0.6}
+}
+.btn{
+    width:100%;
+    margin-top:8px;
+    padding:9px;
+    border:none;
+    border-radius:6px;
+    background:#3b82f6;
+    color:#fff;
+    cursor:pointer;
+    font-size:14px;
+}
+.btn:hover{background:#2563eb}
+.btn.secondary{background:#374151}
+.btn.secondary:hover{background:#4b5563}
+.btn.orange{background:#f97316;font-weight:bold}
+.btn.orange:hover{background:#ea580c}
+.flex-row{display:flex;gap:8px}
+.compare-wrap{
+    max-width:900px;
+    margin:0 auto;
+    background:#1a1d27;
+    padding:24px;
+    border-radius:10px;
+    border:1px solid #2c303d;
+}
+canvas{
+    width:100% !important;
+    display:block;
+    margin:0 auto;
+}
+.challenge-wrap{
+    max-width:1100px;
+    margin:0 auto;
+}
+.challenge-card{
+    background:#1a1d27;
+    border:1px solid #2c303d;
+    border-radius:10px;
+    padding:24px;
+}
+.challenge-title{
+    font-size:18px;
+    color:#f97316;
+    font-weight:bold;
+    margin-bottom:12px;
+}
+.challenge-desc{
+    color:#d1d5db;
+    font-size:14px;
+    line-height:1.7;
+    margin-bottom:20px;
+}
+.compare-row{
+    display:flex;
+    gap:16px;
+    margin:20px 0;
+    align-items:stretch;
+}
+.compare-col{
+    flex:1;
+    background:#202430;
+    border:1px solid #2c303d;
+    border-radius:8px;
+    padding:16px;
+}
+.compare-col h4{
+    margin-top:0;
+    text-align:center;
+    color:#60a5fa;
+}
+.vs-tag{
+    width:40px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#9ca3af;
+    font-weight:bold;
+}
+.challenge-tip{
+    background:#162942;
+    border-left:4px solid #3b82f6;
+    padding:10px 14px;
+    border-radius:0 6px 6px 0;
+    margin-top:12px;
+    color:#bfdbfe;
+    font-size:14px;
+}
+/* 新增样式：用于复刻图片的设计流程与参数说明 */
+.design-flow-container {
+    display: flex; flex-wrap: wrap; align-items: center;
+    justify-content: center; gap: 8px; margin: 16px 0;
+}
+.design-step {
+    background: #202430; border: 1px solid #2c303d; border-radius: 20px;
+    padding: 6px 16px; font-size: 13px; color: #d1d5db;
+    display: flex; align-items: center; gap: 8px;
+}
+.design-step span {
+    background: #3b82f6; color: #fff; width: 18px; height: 18px;
+    border-radius: 50%; display: inline-flex; align-items: center;
+    justify-content: center; font-size: 11px;
+}
+.design-arrow { color: #4b5563; font-size: 14px; }
+.param-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 12px; margin-top: 14px;
+}
+.param-card {
+    background: #1e2330; border: 1px solid #2c303d; border-radius: 8px;
+    padding: 16px 10px; text-align: center; display: flex;
+    flex-direction: column; align-items: center; justify-content: center;
+    transition: 0.2s;
+}
+.param-card:hover { border-color: #3b82f6; background: #242b3d; }
+.param-symbol {
+    font-family: "Times New Roman", Times, serif; font-size: 20px;
+    font-style: italic; color: #ffffff; margin-bottom: 6px;
+}
+.param-name { font-size: 12px; color: #60a5fa; line-height: 1.5; }
+.influence-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 12px; margin-top: 14px;
+}
+.influence-card {
+    background: #1e2330; border: 1px solid #2c303d; border-radius: 8px;
+    padding: 14px 10px; text-align: center; font-size: 13px;
+    display: flex; flex-direction: column; gap: 6px;
+}
+.influence-title { color: #ffffff; font-weight: 500; }
+.influence-effect { color: #60a5fa; font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="tab-header">
+    <h1>无人机航测航线规划器｜第六组【顶配增强版】</h1>
+    <div class="subtitle">RS-LAB交互实验｜综合运用与测评游戏化作品</div>
+    <div class="tab-buttons">
+        <button class="tab-btn active" data-target="intro">介绍</button>
+        <button class="tab-btn" data-target="plan">航线规划</button>
+        <button class="tab-btn" data-target="compare">方案对比</button>
+        <button class="tab-btn" data-target="challenge">挑战任务</button>
+        <button class="tab-btn" data-target="ref">参考来源</button>
+    </div>
+</div>
+<div class="status-bar">
+    <div class="status-item"><span class="dot dot-green"></span>系统就绪</div>
+    <div class="status-item">地图服务：高德 | 坐标系：WGS84/Web Mercator | 当前模式：矩形测区 | 任务编号:UAV-2026-006</div>
+</div>
+<div class="workstation">
+    <div class="page active" id="intro">
+        <div class="intro-main">
+            <h2>作业基本信息</h2>
+            <div style="font-size:14px;line-height:1.8;">
+                <div><b>作业名称：</b>无人机航测航线规划器设计与实现</div>
+                <div><b>课程名称：</b>遥感原理与应用</div>
+                <div><b>完成形式：</b>交互网页（在线访问实验作品）</div>
+                <div><b>设计目标：</b>实现测区框选、航高反算、航线自动生成、续航评估、仿真飞行动画、工作量估算与多方案对比</div>
+            </div>
+            <h2>一、实验目的</h2>
+            <ul>
+                <li>理解无人机航空摄影测量中 GSD、航高、重叠度、航线间距之间的关系。</li>
+                <li>掌握根据目标地面分辨率反算相对航高的基本方法。</li>
+                <li>能够在矩形测区内自动规划平行航线，并估算曝光步距、航线条数和飞行工作量。</li>
+                <li>结合无人机续航评估电池与架次需求，理解续航对实际航测作业的约束。</li>
+                <li>了解地形起伏对实际GSD的影响，区分相对航高与绝对航高概念。</li>
+                <li>通过参数调整与方案对比，分析不同航测设计方案对作业效率的影响。</li>
+            </ul>
+            <h2>二、地形影响概念提示</h2>
+            <div class="warn-notice">
+                ⚠️本系统计算得到为<strong>相对航高（相对于起飞平面）</strong>。当地面存在地形起伏，山体高处无人机实际离地高度会变小，GSD会变优；山谷低洼处离地高度变大，GSD会变差。本网页无法读取真实DEM高程数据，仅做理论平面测区计算。实际作业需要考虑地形，适当预留航高余量。
+            </div>
+            
+            <h2>三、总体设计流程</h2>
+            <div class="design-flow-container">
+                <div class="design-step"><span>1</span>输入相机参数</div><div class="design-arrow">→</div>
+                <div class="design-step"><span>2</span>设定GSD与重叠</div><div class="design-arrow">→</div>
+                <div class="design-step"><span>3</span>框选矩形测区</div><div class="design-arrow">→</div>
+                <div class="design-step"><span>4</span>反算航高与幅宽</div><div class="design-arrow">→</div>
+                <div class="design-step"><span>5</span>生成航线并估算工作量</div>
+            </div>
+
+            <h2>四、参数说明与影响关系</h2>
+            <div class="param-grid">
+                <div class="param-card"><div class="param-symbol">a</div><div class="param-name">像元尺寸，单位μm</div></div>
+                <div class="param-card"><div class="param-symbol">f</div><div class="param-name">镜头焦距，单位mm</div></div>
+                <div class="param-card"><div class="param-symbol">H</div><div class="param-name">相对航高，单位m</div></div>
+                <div class="param-card"><div class="param-symbol">S<sub>w</sub></div><div class="param-name">传感器宽度，单位mm</div></div>
+                <div class="param-card"><div class="param-symbol">S<sub>g</sub></div><div class="param-name">地面幅宽，单位m</div></div>
+                <div class="param-card"><div class="param-symbol">L<sub>y</sub></div><div class="param-name">航线间距，单位m</div></div>
+                <div class="param-card"><div class="param-symbol">L<sub>x</sub></div><div class="param-name">曝光步距，单位m</div></div>
+                <div class="param-card"><div class="param-symbol">p<sub>x</sub>, p<sub>y</sub></div><div class="param-name">航向、旁向重叠率</div></div>
+                <div class="param-card"><div class="param-symbol">A</div><div class="param-name">测区面积，单位m²</div></div>
+            </div>
+
+            <div class="influence-grid" style="margin-top: 24px;">
+                <div class="influence-card"><div class="influence-title">GSD减小</div><div class="influence-effect">航高降低</div></div>
+                <div class="influence-card"><div class="influence-title">重叠度升高</div><div class="influence-effect">航线加密</div></div>
+                <div class="influence-card"><div class="influence-title">航线加密</div><div class="influence-effect">照片数增加</div></div>
+                <div class="influence-card"><div class="influence-title">照片数增加</div><div class="influence-effect">飞行时间增长</div></div>
+                <div class="influence-card"><div class="influence-title">航高降低</div><div class="influence-effect">单张幅宽减小</div></div>
+                <div class="influence-card"><div class="influence-title">幅宽减小</div><div class="influence-effect">航线数量增加</div></div>
+            </div>
+
+            <h2>五、功能模块</h2>
+            <div class="relation-box">
+                <div class="relation-item">
+                    <div style="font-size:16px;color:#60a5fa;font-weight:bold;margin-bottom:8px;">🗺️ 测区绘制模块</div>
+                    <div>支持在地图上点击两个对角点，自动生成矩形测区，并计算测区面积。</div>
+                </div>
+                <div class="relation-item">
+                    <div style="font-size:16px;color:#60a5fa;font-weight:bold;margin-bottom:8px;">⚙️ 参数输入模块</div>
+                    <div>相机参数、任务参数、无人机续航参数输入；支持航线方向切换。</div>
+                </div>
+                <div class="relation-item">
+                    <div style="font-size:16px;color:#60a5fa;font-weight:bold;margin-bottom:8px;">📡 航线规划模块</div>
+                    <div>水平/垂直两个方向平行航带自动生成，动画绘制航线。</div>
+                </div>
+                <div class="relation-item">
+                    <div style="font-size:16px;color:#60a5fa;font-weight:bold;margin-bottom:8px;">🔋续航评估模块</div>
+                    <div>输入无人机续航，自动计算需要电池数量、作业架次，续航不足红色告警。</div>
+                </div>
+                <div class="relation-item">
+                    <div style="font-size:16px;color:#60a5fa;font-weight:bold;margin-bottom:8px;">✈️仿真飞行动画</div>
+                    <div>飞机图标沿规划航线仿真飞行，直观模拟航测作业过程。</div>
+                </div>
+                <div class="relation-item">
+                    <div style="font-size:16px;color:#60a5fa;font-weight:bold;margin-bottom:8px;">📊结果导出模块</div>
+                    <div>当前结果CSV+文本导出；支持导出下拉选中保存方案的参数报告。</div>
+                </div>
+            </div>
+            <h2>六、理论公式</h2>
+            <div class="formula-block">
+                <div class="formula-title">公式 1  地面分辨率与航高反算</div>
+                <p>地面采样距离 GSD 与相对航高 H 的关系为：</p>
+                \[
+                \text{GSD} = \frac{aH}{f}
+                \]
+                <p>在已知目标 GSD 时，可反算相对航高：</p>
+                \[
+                H = \frac{\text{GSD} \cdot f}{a}
+                \]
+                <div class="formula-title">公式 2  单张影像地面幅宽</div>
+                <p>传感器宽度为 \(S_w\)，则单张影像对应的地面幅宽为：</p>
+                \[
+                S_g = \frac{S_w H}{f}
+                \]
+                <div class="formula-title">公式 3  航线间距与曝光步距</div>
+                <p>旁向重叠率为 \(p_y\)，航向重叠率为 \(p_x\)，则：</p>
+                \[
+                L_y = S_g (1-p_y)
+                \]
+                \[
+                L_x = S_g (1-p_x)
+                \]
+                <div class="formula-title">公式 4  总像片数估算</div>
+                <p>测区面积为 A，则总像片数可近似表示为：</p>
+                \[
+                N = \left\lceil \frac{A}{L_x L_y} \right\rceil
+                \]
+            </div>
+            <div class="tip-notice">
+                💡 当前版本：矩形测区；多边形测区、误差分析模块为后续拓展方向。
+            </div>
+        </div>
+    </div>
+    <div class="page" id="plan">
+        <div id="plan-container">
+            <div id="map">
+                <div id="map-hint">点击“绘制矩形测区”后，在地图上选择两个对角点</div>
+            </div>
+            <div id="panel">
+                <h3>航测参数设置</h3>
+                <div class="panel-card">
+                    <div class="panel-card-title">相机参数</div>
+                    <div class="item">
+                        <label>像元尺寸 a (μm)</label>
+                        <input id="pixel" value="3.45" type="number" step="0.01">
+                    </div>
+                    <div class="item">
+                        <label>焦距 f (mm)</label>
+                        <input id="focal" value="16" type="number" step="0.1">
+                    </div>
+                    <div class="item">
+                        <label>传感器宽度 Sw (mm)</label>
+                        <input id="sw" value="13.2" type="number" step="0.1">
+                    </div>
+                </div>
+                <div class="panel-card">
+                    <div class="panel-card-title">任务参数</div>
+                    <div class="item">
+                        <label>目标GSD (cm)</label>
+                        <input id="gsd" value="5" type="number" step="0.1">
+                    </div>
+                    <div class="item">
+                        <label>航线生成方向</label>
+                        <select id="routeDir">
+                            <option value="horizontal">水平航带(东西向，默认)</option>
+                            <option value="vertical">垂直航带(南北向)</option>
+                        </select>
+                    </div>
+                    <div class="item">
+                        <label>航向重叠 p<sub>x</sub> <span id="ov1txt">80</span>%</label>
+                        <div class="slide-row">
+                            <input id="ov1" type="range" min="50" max="90" value="80">
+                            <span class="slide-val" id="ov1txt">80%</span>
+                        </div>
+                    </div>
+                    <div class="item">
+                        <label>旁向重叠 p<sub>y</sub> <span id="ov2txt">60</span>%</label>
+                        <div class="slide-row">
+                            <input id="ov2" type="range" min="40" max="80" value="60">
+                            <span class="slide-val" id="ov2txt">60%</span>
+                        </div>
+                    </div>
+                    <div class="item">
+                        <label>飞行速度 v (m/s)</label>
+                        <input id="speed" value="6" type="number" step="0.1">
+                    </div>
+                    <div class="item">
+                        <label>无人机单块电池最大续航 (min)</label>
+                        <input id="uavBatteryTime" value="25" type="number" step="0.5">
+                    </div>
+                    <div class="item">
+                        <label>航线动画速度</label>
+                        <input id="animSpeed" type="range" min="0.3" max="3" step="0.1" value="1">
+                    </div>
+                </div>
+                <div class="panel-card">
+                    <div class="panel-card-title">方案管理与导出</div>
+                    <div class="flex-row">
+                        <button class="btn secondary" id="btnSavePlan">保存方案</button>
+                        <button class="btn secondary" id="btnDelPlan">删除选中</button>
+                        <button class="btn secondary" id="btnExportSelectedPlan">导出选中方案</button>
+                    </div>
+                    <div style="font-size:12px;color:#9ca3af;margin-top:6px;line-height:1.6">
+                        说明：“删除选中”用于删除本地保存的历史方案记录，不会清除当前地图上的测区或航线。导出选中方案仅导出保存的原始参数。
+                    </div>
+                    <div class="flex-row" style="margin-top:8px">
+                        <button class="btn secondary" id="btnExportCsv">导出CSV报告</button>
+                        <button class="btn secondary" id="btnExportTxt">导出文本报告</button>
+                    </div>
+                    <select id="planList" style="width:100%;margin-top:10px;padding:6px;background:#202430;color:#fff;border-radius:6px;border:1px solid #373c4e;">
+                        <option value="">--已保存方案--</option>
+                    </select>
+                </div>
+                <div class="action-bar">
+                    <button class="action-btn draw" id="drawRectBtn">🟩 绘制测区</button>
+                    <button class="action-btn plan" id="btnCalc">开始规划</button>
+                    <button class="action-btn clear" id="btnClear">清空测区</button>
+                </div>
+                <div class="flex-row" style="margin-bottom:14px">
+                    <button class="action-btn sim" id="btnSimStart">✈️开始仿真飞行</button>
+                    <button class="action-btn sim" id="btnSimReset">🔄重置仿真</button>
+                </div>
+                <div class="panel-card">
+                    <div class="panel-card-title">计算结果</div>
+                    <div class="result" id="res">请先绘制测绘区域</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="page" id="compare">
+        <div class="compare-wrap">
+            <h2 style="margin-top:0;text-align:center">GSD-照片数量灵敏度分析</h2>
+            <p style="text-align:center;color:#9ca3af;font-size:14px">
+                固定其他参数，改变 GSD，观察总照片数量变化。<br>
+                <b>预期规律：GSD 越小（精度越高），所需照片数量越多；GSD 越大，照片数量越少。</b>
+            </p>
+            <div style="text-align:center;margin-bottom:10px;">
+                <label style="color:#d1d5db">
+                    <input type="checkbox" id="useLogScale"> 使用对数Y轴（适合数值差异巨大场景）
+                </label>
+            </div>
+            <div style="margin:20px 0">
+                <canvas id="chartCanvas"></canvas>
+            </div>
+            <div style="text-align:center">
+                <button class="btn" id="runChart" style="width:auto;padding:10px 28px">生成灵敏度曲线</button>
+            </div>
+            <div class="tip-notice" style="margin-top:18px">
+                💡 使用提示：先在【航线规划】页面修改相机参数和重叠度，再回到本页点击“生成灵敏度曲线”，图表会按当前参数重新计算。
+            </div>
+        </div>
+    </div>
+    <div class="page" id="challenge">
+        <div class="challenge-wrap">
+            <div class="challenge-card">
+                <h2 class="challenge-title">🚩 挑战任务：固定1km²测区航测估算</h2>
+                <p class="challenge-desc">任务描述：假设测区面积固定为 1 km²（1000000 m²），读取上方交互面板的相机参数，对比【当前自定义方案】与【高精度方案】的工作量差异。</p>
+                <button class="btn orange" id="btnChallenge">读取当前参数，计算对比方案</button>
+                <div class="compare-row">
+                    <div class="compare-col">
+                        <h4>自定义方案（面板参数）</h4>
+                        <div id="chal1">等待计算</div>
+                    </div>
+                    <div class="vs-tag">VS</div>
+                    <div class="compare-col">
+                        <h4>高精度对照方案（GSD=1cm）</h4>
+                        <div id="chal2">等待计算</div>
+                    </div>
+                </div>
+                <div class="challenge-tip">
+                    💡 使用提示：先在【航线规划】页面修改各项参数，再回到本页点击计算，两组结果同步更新！
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="page" id="ref">
+        <div class="intro-main" style="max-width:1200px">
+            <h2>参考来源</h2>
+            <ul style="padding-left:20px">
+                <li>《遥感原理与应用》课程课件，RS-LAB实验平台，查询日期：2026-11</li>
+                <li>无人机航测规范、GSD计算公式与航带设计原理</li>
+                <li>Leaflet、Chart.js、MathJax 开源文档</li>
+                <li>高分影像素材：课程提供，版权仅用于课内实验展示</li>
+            </ul>
+        </div>
+    </div>
+</div>
+<script>
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+    btn.onclick = ()=>{
+        document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'))
+        document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'))
+        btn.classList.add('active')
+        const target = btn.dataset.target
+        document.getElementById(target).classList.add('active')
+        if(target === "plan"){
+            setTimeout(()=>map.invalidateSize(),100)
+        }
+    }
+})
+const map = L.map('map').setView([39.9042,116.4074],12)
+L.control.scale({imperial:false, position:'bottomleft'}).addTo(map)
+L.tileLayer('https://webrd02.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}',{attribution:"高德地图"}).addTo(map)
+
+let drawnLayer = null
+let routeLayers = []
+let routeLatLngList = []
+let animTimer = null
+let simTimer = null
+let droneMarker = null
+let area = 0
+let drawMode = false
+let firstPoint = null
+let lastResult = null
+let lastAreaValue = null
+const resDom = document.getElementById("res")
+const chal1Dom = document.getElementById("chal1")
+const chal2Dom = document.getElementById("chal2")
+const planList = document.getElementById("planList")
+
+function validateInput(pixel,focal,sw,gsd,speed,batteryMin){
+    if(isNaN(pixel)||isNaN(focal)||isNaN(sw)||isNaN(gsd)||isNaN(speed)||isNaN(batteryMin)){
+        return "参数不能为空或非数字！"
+    }
+    if(pixel<=0||focal<=0||sw<=0||gsd<=0||speed<=0||batteryMin<=0){
+        return "所有参数必须大于0！"
+    }
+    return true
+}
+
+function loadPlans(){
+    const plans = JSON.parse(localStorage.getItem('uavPlans')||'[]')
+    planList.innerHTML = '<option value="">--已保存方案--</option>'
+    plans.forEach((p,i)=>{
+        const opt = document.createElement('option')
+        opt.value = i
+        opt.textContent = p.name
+        planList.appendChild(opt)
+    })
+}
+loadPlans()
+
+//导出下拉选中保存的方案
+document.getElementById("btnExportSelectedPlan").onclick = function(){
+    const idx = planList.value
+    if(idx === ""){
+        alert("请先在下拉框选择一个已保存的方案！")
+        return
+    }
+    const plans = JSON.parse(localStorage.getItem('uavPlans')||'[]')
+    const p = plans[idx]
+    let text = "参数名称,数值\n"
+    text += `方案名称,${p.name}\n`
+    text += `像元尺寸(μm),${p.pixel}\n`
+    text += `焦距(mm),${p.focal}\n`
+    text += `传感器宽度(mm),${p.sw}\n`
+    text += `GSD(cm),${p.gsd}\n`
+    text += `航向重叠(%),${p.ov1}\n`
+    text += `旁向重叠(%),${p.ov2}\n`
+    text += `飞行速度(m/s),${p.speed}\n`
+    text += `单块电池续航(min),${p.uavBatteryTime||''}\n`
+    text += `航线方向,${p.routeDir||'horizontal'}\n`
+    const blob = new Blob([text], {type:"text/csv;charset=utf-8"})
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = "uav_plan_"+encodeURIComponent(p.name)+".csv"
+    a.click()
+}
+
+document.getElementById('drawRectBtn').onclick = function(){
+    drawMode = true
+    firstPoint = null
+    drawnLayer && map.removeLayer(drawnLayer)
+    routeLayers.forEach(l=>map.removeLayer(l))
+    routeLayers = []
+    routeLatLngList = []
+    animTimer && clearTimeout(animTimer)
+    simTimer && clearInterval(simTimer)
+    if(droneMarker) map.removeLayer(droneMarker); droneMarker=null;
+    resDom.innerHTML = "✅绘图模式开启：点击地图第一角点"
+}
+
+document.getElementById('btnClear').onclick = function(){
+    drawnLayer && map.removeLayer(drawnLayer)
+    routeLayers.forEach(l=>map.removeLayer(l))
+    routeLayers=[]
+    routeLatLngList = []
+    animTimer && clearTimeout(animTimer)
+    simTimer && clearInterval(simTimer)
+    if(droneMarker) map.removeLayer(droneMarker); droneMarker=null;
+    animTimer=null
+    area=0
+    drawnLayer=null
+    drawMode = false
+    firstPoint=null
+    lastResult=null
+    lastAreaValue=null
+    resDom.innerHTML="请先绘制测绘区域"
+}
+
+map.on('click', function(e){
+    if(!drawMode) return
+    if(!firstPoint){
+        firstPoint = e.latlng
+        resDom.innerHTML="✅已选第一点，请点击对角第二个点"
+    }else{
+        const bounds = L.latLngBounds(firstPoint, e.latlng)
+        drawnLayer && map.removeLayer(drawnLayer)
+        drawnLayer = L.rectangle(bounds,{color:"#39d353",weight:2}).addTo(map)
+        const p1 = bounds.getSouthWest()
+        const p2 = bounds.getNorthEast()
+        const latM = (p2.lat - p1.lat) * 111000
+        const lngM = (p2.lng - p1.lng) * 111000 * Math.cos(p1.lat*Math.PI/180)
+        area = latM * lngM
+        drawMode = false
+        firstPoint=null
+        resDom.innerHTML="✅测区绘制完成！点击【开始规划】"
+    }
+})
+
+document.getElementById("ov1").oninput = function(){
+    document.getElementById("ov1txt").innerText = this.value + "%"
+}
+document.getElementById("ov2").oninput = function(){
+    document.getElementById("ov2txt").innerText = this.value + "%"
+}
+
+document.getElementById("btnCalc").onclick = async function(){
+    if(!drawnLayer){
+        resDom.innerHTML="<span style='color:#f87171'>请先绘制测绘区域！</span>"
+        return
+    }
+    const pixel = parseFloat(document.getElementById("pixel").value)
+    const focal = parseFloat(document.getElementById("focal").value)
+    const sw = parseFloat(document.getElementById("sw").value)
+    const gsd = parseFloat(document.getElementById("gsd").value)
+    const ov1 = parseFloat(document.getElementById("ov1").value)
+    const ov2 = parseFloat(document.getElementById("ov2").value)
+    const speed = parseFloat(document.getElementById("speed").value)
+    const batteryMin = parseFloat(document.getElementById("uavBatteryTime").value)
+    const routeDir = document.getElementById("routeDir").value
+    const check = validateInput(pixel,focal,sw,gsd,speed,batteryMin)
+    if(check!==true){
+        resDom.innerHTML="<span style='color:#f87171'>"+check+"</span>"
+        return
+    }
+    routeLayers.forEach(l=>map.removeLayer(l))
+    routeLayers = []
+    routeLatLngList = []
+    animTimer && clearTimeout(animTimer)
+    simTimer && clearInterval(simTimer)
+    if(droneMarker) map.removeLayer(droneMarker); droneMarker=null;
+    animTimer = null
+    resDom.innerHTML="<span style='color:#60a5fa'>正在生成航线……</span>"
+
+    const pixelVal = pixel / 1000000
+    const focalVal = focal / 1000
+    const swVal = sw / 1000
+    const gsdVal = gsd / 100
+    const ov1Val = ov1/100
+    const ov2Val = ov2/100
+    const H = gsdVal * focalVal / pixelVal
+    const widthGround = H * swVal / focalVal
+    const lineSpace = widthGround * (1 - ov2Val)
+    const shootStep = widthGround * (1 - ov1Val)
+    const bounds = drawnLayer.getBounds()
+    let lineNum, totalImg, timeMin;
+    const animSpeed = parseFloat(document.getElementById("animSpeed").value)
+
+    const minLat = bounds.getSouth()
+    const maxLat = bounds.getNorth()
+    const minLng = bounds.getWest()
+    const maxLng = bounds.getEast()
+    routeLatLngList = [];
+    if(routeDir === "horizontal"){
+        const latSpan = maxLat - minLat
+        const latMeter = latSpan * 111000
+        lineNum = Math.ceil(latMeter / lineSpace)
+        totalImg = Math.ceil(area/(shootStep * lineSpace))
+        timeMin = (latMeter * lineNum / speed)/60
+        const latDis = lineSpace / 111000
+        let i=0
+        function drawNextH(){
+            if(i>=lineNum) return;
+            const lat = maxLat - i*latDis
+            const lp1 = [lat, minLng]
+            const lp2 = [lat, maxLng]
+            const line = L.polyline([lp1,lp2], {color:'#3b82f6', weight:2}).addTo(map)
+            routeLayers.push(line)
+            routeLatLngList.push([L.latLng(lp1), L.latLng(lp2)])
+            i++;
+            animTimer = setTimeout(drawNextH,400/animSpeed)
+        }
+        drawNextH();
+    }else{
+        const lngSpan = maxLng - minLng
+        const avgLat = (minLat+maxLat)/2
+        const lngMeter = lngSpan * 111000 * Math.cos(avgLat*Math.PI/180)
+        lineNum = Math.ceil(lngMeter / lineSpace)
+        totalImg = Math.ceil(area/(shootStep * lineSpace))
+        timeMin = (lngMeter * lineNum / speed)/60
+        const lngDis = lineSpace / (111000*Math.cos(avgLat*Math.PI/180))
+        let i=0
+        function drawNextV(){
+            if(i>=lineNum) return;
+            const lng = maxLng - i*lngDis
+            const lp1 = [minLat, lng]
+            const lp2 = [maxLat, lng]
+            const line = L.polyline([lp1,lp2], {color:'#3b82f6', weight:2}).addTo(map)
+            routeLayers.push(line)
+            routeLatLngList.push([L.latLng(lp1), L.latLng(lp2)])
+            i++;
+            animTimer = setTimeout(drawNextV,400/animSpeed)
+        }
+        drawNextV();
+    }
+
+    const currentRes = {
+        H,widthGround,lineSpace,shootStep,lineNum,totalImg,timeMin,area,
+        pixel,focal,sw,gsd,ov1,ov2,speed,batteryMin,routeDir
+    }
+    let sameAreaCompare = false;
+    if(lastResult !== null && lastAreaValue !== null){
+        const diffRate = Math.abs(currentRes.area - lastAreaValue) / lastAreaValue;
+        if(diffRate < 0.005){
+            sameAreaCompare = true;
+        }
+    }
+
+    function getValHtml(curr,prev){
+        if(!sameAreaCompare) return curr.toFixed(1);
+        if(curr>prev) return curr.toFixed(1)+`<span class="arrow-up">↑</span>`;
+        if(curr<prev) return curr.toFixed(1)+`<span class="arrow-down">↓</span>`;
+        return curr.toFixed(1);
+    }
+    function getIntHtml(curr,prev){
+        if(!sameAreaCompare) return curr;
+        if(curr>prev) return curr+`<span class="arrow-up">↑</span>`;
+        if(curr<prev) return curr+`<span class="arrow-down">↓</span>`;
+        return curr;
+    }
+
+    let hStr = getValHtml(currentRes.H, lastResult?.H);
+    let wgStr = getValHtml(currentRes.widthGround, lastResult?.widthGround);
+    let lyStr = getValHtml(currentRes.lineSpace, lastResult?.lineSpace);
+    let lxStr = getValHtml(currentRes.shootStep, lastResult?.shootStep);
+    let lnStr = getIntHtml(currentRes.lineNum, lastResult?.lineNum);
+    let imgStr = getIntHtml(currentRes.totalImg, lastResult?.totalImg);
+    let tStr = getValHtml(currentRes.timeMin, lastResult?.timeMin);
+
+    const needMission = Math.ceil(currentRes.timeMin / batteryMin);
+    let warnHtml = "";
+    if(currentRes.timeMin > batteryMin){
+        warnHtml = `<div class="warn-notice">⚠️警告：本次任务飞行时长${currentRes.timeMin.toFixed(1)}min，超过单电池续航${batteryMin}min！需要${needMission}架次/${needMission}块电池完成作业</div>`
+    }else{
+        warnHtml = `<div class="tip-notice">✅续航评估：任务时长${currentRes.timeMin.toFixed(1)}min，单电池续航${batteryMin}min，1架次即可完成，需电池：1块</div>`
+    }
+
+    resDom.innerHTML = `
+    <b style="color:#86efac">✅航测方案生成成功</b><br>
+    航高 H：${hStr} m<br>
+    单张幅宽：${wgStr} m<br>
+    航线间距 L<sub>y</sub>：${lyStr} m<br>
+    曝光步距 L<sub>x</sub>：${lxStr} m<br>
+    航线条数：${lnStr} 条<br>
+    预估照片：${imgStr} 张<br>
+    飞行时长：${tStr} 分钟<br>
+    测区面积：${Math.round(currentRes.area)} m²
+    ${warnHtml}
+    `
+    lastResult = currentRes;
+    lastAreaValue = currentRes.area;
+}
+
+//仿真飞行（保留原版跳点逻辑）
+document.getElementById("btnSimStart").onclick = function(){
+    if(!lastResult || routeLatLngList.length===0){
+        alert("请先生成航线！");return;
+    }
+    simTimer && clearInterval(simTimer);
+    if(droneMarker) map.removeLayer(droneMarker);
+    const iconDrone = L.divIcon({html:"✈️",className:"",iconSize:[24,24]});
+    droneMarker = L.marker(routeLatLngList[0][0],{icon:iconDrone}).addTo(map);
+    let pointIdx = 0;
+    const pathAll = [];
+    for(let r of routeLatLngList){
+        pathAll.push(r[0]); pathAll.push(r[1]);
+    }
+    simTimer = setInterval(()=>{
+        if(pointIdx >= pathAll.length){
+            clearInterval(simTimer); simTimer=null; return;
+        }
+        droneMarker.setLatLng(pathAll[pointIdx]);
+        pointIdx++;
+    },350)
+}
+document.getElementById("btnSimReset").onclick = function(){
+    simTimer && clearInterval(simTimer); simTimer=null;
+    if(droneMarker){map.removeLayer(droneMarker); droneMarker=null;}
+}
+
+document.getElementById("btnSavePlan").onclick = function(){
+    const name = prompt("请输入方案名称：")
+    if(!name) return
+    const plans = JSON.parse(localStorage.getItem('uavPlans')||'[]')
+    plans.push({
+        name,
+        pixel:document.getElementById("pixel").value,
+        focal:document.getElementById("focal").value,
+        sw:document.getElementById("sw").value,
+        gsd:document.getElementById("gsd").value,
+        ov1:document.getElementById("ov1").value,
+        ov2:document.getElementById("ov2").value,
+        speed:document.getElementById("speed").value,
+        uavBatteryTime:document.getElementById("uavBatteryTime").value,
+        routeDir:document.getElementById("routeDir").value
+    })
+    localStorage.setItem('uavPlans',JSON.stringify(plans))
+    loadPlans()
+    alert("方案已保存")
+}
+document.getElementById("btnDelPlan").onclick = function(){
+    const idx = planList.value
+    if(idx === ""){ alert("请先选择一个已保存方案！"); return }
+    if(!confirm("确认删除该保存方案？此操作仅删除本地方案记录，不会清除当前地图航线。")) return;
+    const plans = JSON.parse(localStorage.getItem('uavPlans')||'[]')
+    plans.splice(idx,1)
+    localStorage.setItem('uavPlans',JSON.stringify(plans))
+    loadPlans()
+}
+planList.onchange = function(){
+    const idx = planList.value
+    if(idx === "") return
+    const plans = JSON.parse(localStorage.getItem('uavPlans')||'[]')
+    const p = plans[idx]
+    document.getElementById("pixel").value = p.pixel
+    document.getElementById("focal").value = p.focal
+    document.getElementById("sw").value = p.sw
+    document.getElementById("gsd").value = p.gsd
+    document.getElementById("ov1").value = p.ov1
+    document.getElementById("ov2").value = p.ov2
+    document.getElementById("speed").value = p.speed
+    if(p.uavBatteryTime) document.getElementById("uavBatteryTime").value = p.uavBatteryTime;
+    if(p.routeDir) document.getElementById("routeDir").value = p.routeDir;
+    document.getElementById("ov1txt").innerText = p.ov1 + "%"
+    document.getElementById("ov2txt").innerText = p.ov2 + "%"
+}
+
+document.getElementById("btnExportCsv").onclick = function(){
+    if(!lastResult){ alert("请先完成航线计算！"); return; }
+    const r = lastResult
+    let text = "参数名称,数值\n"
+    text += `像元尺寸(μm),${r.pixel}\n`
+    text += `焦距(mm),${r.focal}\n`
+    text += `传感器宽度(mm),${r.sw}\n`
+    text += `GSD(cm),${r.gsd}\n`
+    text += `航向重叠(%),${r.ov1}\n`
+    text += `旁向重叠(%),${r.ov2}\n`
+    text += `飞行速度(m/s),${r.speed}\n`
+    text += `单块电池续航(min),${r.batteryMin}\n`
+    text += `航高H(m),${r.H.toFixed(1)}\n`
+    text += `单张地面幅宽(m),${r.widthGround.toFixed(1)}\n`
+    text += `航线间距(m),${r.lineSpace.toFixed(1)}\n`
+    text += `曝光步距(m),${r.shootStep.toFixed(1)}\n`
+    text += `航线条数,${r.lineNum}\n`
+    text += `预估照片数,${r.totalImg}\n`
+    text += `预估飞行时长(min),${r.timeMin.toFixed(1)}\n`
+    text += `测区面积(m²),${Math.round(r.area)}\n`
+    const blob = new Blob([text], {type:"text/csv;charset=utf-8"})
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = "uav_survey_report.csv"
+    a.click()
+}
+document.getElementById("btnExportTxt").onclick = function(){
+    if(!lastResult){ alert("请先完成航线计算！"); return; }
+    const r = lastResult
+    let txt = "============================无人机航测实验报告============================\n"
+    txt += "【相机参数】\n"
+    txt += `像元尺寸 a：${r.pixel} μm\n`
+    txt += `焦距 f：${r.focal} mm\n`
+    txt += `传感器宽度 Sw：${r.sw} mm\n`
+    txt += "\n【任务输入参数】\n"
+    txt += `目标GSD：${r.gsd} cm\n`
+    txt += `航向重叠：${r.ov1} %\n`
+    txt += `旁向重叠：${r.ov2} %\n`
+    txt += `飞行速度：${r.speed} m/s\n`
+    txt += `无人机单电池续航：${r.batteryMin} min\n`
+    txt += `航线方向：${r.routeDir==='horizontal'?'水平东西向':'垂直南北向'}\n`
+    txt += "\n【航测计算输出结果】\n"
+    txt += `相对航高 H：${r.H.toFixed(1)} m\n`
+    txt += `单张影像地面幅宽：${r.widthGround.toFixed(1)} m\n`
+    txt += `航线间距 Ly：${r.lineSpace.toFixed(1)} m\n`
+    txt += `曝光步距 Lx：${r.shootStep.toFixed(1)} m\n`
+    txt += `航线条数：${r.lineNum} 条\n`
+    txt += `预估照片总数：${r.totalImg} 张\n`
+    txt += `预估总飞行时长：${r.timeMin.toFixed(1)} 分钟\n`
+    txt += `测区面积：${Math.round(r.area)} m²\n`
+    txt += "\n===========================================================================\n"
+    const blob = new Blob([txt], {type:"text/plain;charset=utf-8"})
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = "uav_survey_report.txt"
+    a.click()
+}
+
+//挑战任务
+document.getElementById("btnChallenge").onclick = function(){
+    const pixel = parseFloat(document.getElementById("pixel").value)
+    const focal = parseFloat(document.getElementById("focal").value)
+    const sw = parseFloat(document.getElementById("sw").value)
+    const gsd = parseFloat(document.getElementById("gsd").value)
+    const ov1 = parseFloat(document.getElementById("ov1").value)
+    const ov2 = parseFloat(document.getElementById("ov2").value)
+    const areaFixed = 1000000
+    const check = validateInput(pixel,focal,sw,gsd,5,25)
+    if(check!==true){
+        alert(check)
+        return
+    }
+    const pixelVal = pixel / 1000000
+    const focalVal = focal / 1000
+    const swVal = sw / 1000
+    const gsdVal = gsd / 100
+    const ov1Val = ov1/100
+    const ov2Val = ov2/100
+    const H1 = gsdVal * focalVal / pixelVal
+    const widthGround1 = H1 * swVal / focalVal
+    const step1 = widthGround1*(1-ov1Val)
+    const lineSpace1 = widthGround1*(1-ov2Val)
+    const total1 = Math.ceil(areaFixed/(step1*lineSpace1))
+    const gsd2 = 0.01
+    const H2 = gsd2 * focalVal / pixelVal
+    const widthGround2 = H2 * swVal / focalVal
+    const step2 = widthGround2*(1-ov1Val)
+    const lineSpace2 = widthGround2*(1-ov2Val)
+    const total2 = Math.ceil(areaFixed/(step2*lineSpace2))
+    chal1Dom.innerHTML = `
+    GSD：${gsd} cm<br>
+    航高：${H1.toFixed(1)} m<br>
+    航向间距：${step1.toFixed(1)} m<br>
+    旁向间距：${lineSpace1.toFixed(1)} m
+    <div style="margin-top:10px;padding-top:10px;border-top:1px solid #2c303d;color:#fbbf24">预估照片：${total1} 张</div>
+    `
+    chal2Dom.innerHTML = `
+    GSD：1 cm<br>
+    航高：${H2.toFixed(1)} m<br>
+    航向间距：${step2.toFixed(1)} m<br>
+    旁向间距：${lineSpace2.toFixed(1)} m
+    <div style="margin-top:10px;padding-top:10px;border-top:1px solid #2c303d;color:#fbbf24">预估照片：${total2} 张</div>
+    `
+}
+
+//灵敏度曲线
+let chart
+document.getElementById("runChart").onclick = function(){
+    const pixel = parseFloat(document.getElementById("pixel").value)
+    const focal = parseFloat(document.getElementById("focal").value)
+    const sw = parseFloat(document.getElementById("sw").value)
+    const ov1 = parseFloat(document.getElementById("ov1").value)
+    const ov2 = parseFloat(document.getElementById("ov2").value)
+    const areaFixed = 1000000
+    const useLog = document.getElementById("useLogScale").checked;
+
+    const gsdList = [2, 3, 4, 5, 6, 8, 10, 15, 20]
+    const picList = gsdList.map(g=>{
+        const gsdVal = g/100;
+        const pixelVal = pixel / 1e6;
+        const focalVal = focal / 1000;
+        const swVal = sw / 1000;
+
+        const H = gsdVal * focalVal / pixelVal
+        const Sg = swVal * H / focalVal
+        const Ly = Sg*(1-ov2/100)
+        const Lx = Sg*(1-ov1/100)
+        return Math.ceil(areaFixed/(Lx*Ly))
+    })
+    const ctx = document.getElementById('chartCanvas').getContext('2d')
+    if(chart) chart.destroy()
+
+    const yAxisOpt = {
+        title:{
+            display:true,
+            text:"照片总数（张）",
+            color:"#9ca3af"
+        },
+        ticks:{
+            color:"#9ca3af",
+            callback: function(value){
+                return value.toLocaleString()
+            }
+        },
+        grid:{
+            color:"rgba(255,255,255,0.08)"
+        }
+    }
+    if(useLog){
+        yAxisOpt.type = 'logarithmic'
+        yAxisOpt.beginAtZero = false;
+    }else{
+        yAxisOpt.beginAtZero = true;
+    }
+
+    chart = new Chart(ctx,{
+        type:'line',
+        data:{
+            labels:gsdList.map(v=>v+" cm"),
+            datasets:[{
+                label:"照片总数（张）",
+                data:picList,
+                borderColor:"#3b82f6",
+                backgroundColor:"rgba(59,130,246,0.15)",
+                fill:true,
+                tension:0.3,
+                pointRadius:5
+            }]
+        },
+        options:{
+            responsive:true,
+            plugins:{
+                title:{
+                    display:true,
+                    text:"1km²测区：GSD与照片数量关系（GSD越小，照片数越多）"
+                },
+                legend:{
+                    labels:{
+                        color:"#e5e7eb"
+                    }
+                }
+            },
+            scales:{
+                x:{
+                    title:{
+                        display:true,
+                        text:"GSD（cm）",
+                        color:"#9ca3af"
+                    },
+                    ticks:{
+                        color:"#9ca3af"
+                    },
+                    grid:{
+                        color:"rgba(255,255,255,0.08)"
+                    }
+                },
+                y: yAxisOpt
+            }
+        }
+    })
+}
+</script>
+</body>
+</html>
